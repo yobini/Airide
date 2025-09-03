@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import I18n from '../src/i18n';
-import { authAPI } from '../src/services/api';
+import I18n from './utils/i18n';
+import { authAPI } from './services/api';
 
 export default function Auth() {
   const router = useRouter();

@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import I18n from '../src/i18n';
-import { authAPI } from '../src/services/api';
-import { useAuthStore } from '../src/store/authStore';
+import I18n from './utils/i18n';
+import { authAPI } from './services/api';
+import { useAuthStore } from './store/authStore';
 
 export default function UserType() {
   const router = useRouter();

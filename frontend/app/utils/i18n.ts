@@ -63,7 +63,7 @@ const en = {
     "rateDriver": "Rate Driver",
     "rateRider": "Rate Rider",
     "submit": "Submit",
-    "fare": "Fare",
+    "fare": "Fare ($)",
     "distance": "Distance",
     "duration": "Duration"
   }

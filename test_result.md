@@ -129,17 +129,17 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Hello World endpoint should respond."
-  - task: "Driver API: Register, Online/Offline, Location Update"
-    implemented: false
+  - task: "Driver API: Register, Online/Offline, Location Update, Trips, Earnings"
+    implemented: true
     working: "NA"
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
-      - working: "NA"
+      - working: true
         agent: "main"
-        comment: "To implement: POST /api/drivers/register, POST /api/drivers/{id}/online, POST /api/drivers/{id}/offline, POST /api/drivers/{id}/location, GET /api/drivers/{id}."
+        comment: "Implemented endpoints for drivers (register/get/online/offline/location) and trips (create/list) and earnings summary with service fee tiers including $2 for 20-30 range. Needs automated testing."
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED: GET /api/ returns {\"message\":\"Hello World\"} with status 200. Endpoint working correctly."

@@ -1,48 +1,60 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert } from "react-native";
 import { useDriver } from "../../src/store/driverStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Location from "expo-location";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const regSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  phone: z.string().min(6, "Phone is required"),
+  make: z.string().min(1, "Required"),
+  model: z.string().min(1, "Required"),
+  plate: z.string().min(1, "Required"),
+  color: z.string().optional(),
+  year: z.string().optional(),
+});
+
+type RegForm = z.infer<typeof regSchema>;
 
 export default function HomeScreen() {
   const { driver, setDriver, registerDriver, toggleOnline, sendLocation, refetchDriver } = useDriver();
   const params = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
 
-  // Local state for registration
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [vehicle, setVehicle] = useState({ make: "", model: "", plate: "", color: "", year: undefined as undefined | number });
+  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegForm>({
+    resolver: zodResolver(regSchema),
+    defaultValues: { name: "", phone: "", make: "", model: "", plate: "", color: "", year: "" },
+  });
+
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If we have id in the URL and no driver loaded, fetch it
     const id = params?.id as string | undefined;
     if (id && !driver) {
       refetchDriver(id).then(setDriver).catch(() => {});
     }
   }, [params?.id]);
 
-  const onRegister = useCallback(async () => {
-    if (!name.trim() || !phone.trim() || !vehicle.make.trim() || !vehicle.model.trim() || !vehicle.plate.trim()) {
-      setError("Please fill name, phone, vehicle make/model/plate");
-      return;
-    }
+  const onRegister = useCallback(async (form: RegForm) => {
     setError(null);
-    setSending(true);
     try {
-      const d = await registerDriver({ name, phone, vehicle: { ...vehicle, year: vehicle.year ? Number(vehicle.year) : undefined } });
+      const d = await registerDriver({
+        name: form.name,
+        phone: form.phone,
+        vehicle: { make: form.make, model: form.model, plate: form.plate, color: form.color || undefined, year: form.year ? Number(form.year) : undefined },
+      });
       setDriver(d);
-      // Persist via URL param so reloads keep session
       router.replace({ pathname: "./home", params: { id: d.id } });
     } catch (e: any) {
       setError(e.message || "Register failed");
-    } finally {
-      setSending(false);
     }
-  }, [name, phone, vehicle, registerDriver, setDriver, router]);
+  }, [registerDriver, setDriver, router]);
 
   const onToggle = useCallback(async () => {
     if (!driver) return;
@@ -80,6 +92,22 @@ export default function HomeScreen() {
     }
   }, [driver, lat, lng, sendLocation, setDriver]);
 
+  const requestAndSendCurrentLocation = useCallback(async () => {
+    if (!driver) return;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Location permission is needed to send current location.");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const d = await sendLocation(driver.id, { lat: pos.coords.latitude, lng: pos.coords.longitude });
+      setDriver(d);
+    } catch (e: any) {
+      setError(e.message || "Unable to get current location");
+    }
+  }, [driver, sendLocation, setDriver]);
+
   const Logo = () => (
     <View style={styles.logoRow}>
       <View style={styles.logoDot} />
@@ -96,16 +124,27 @@ export default function HomeScreen() {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Register Driver</Text>
               {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
-              <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#8A8A8A" value={name} onChangeText={setName} />
-              <TextInput style={styles.input} placeholder="Phone" placeholderTextColor="#8A8A8A" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+
+              {/* Simple controlled inputs with RHF via setValue */}
+              <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#8A8A8A" onChangeText={(t)=>setValue('name', t)} />
+              {errors.name ? <Text style={styles.errText}>{errors.name.message}</Text> : null}
+
+              <TextInput style={styles.input} placeholder="Phone" placeholderTextColor="#8A8A8A" keyboardType="phone-pad" onChangeText={(t)=>setValue('phone', t)} />
+              {errors.phone ? <Text style={styles.errText}>{errors.phone.message}</Text> : null}
+
               <Text style={styles.label}>Vehicle</Text>
-              <TextInput style={styles.input} placeholder="Make" placeholderTextColor="#8A8A8A" value={vehicle.make} onChangeText={(t) => setVehicle(v => ({ ...v, make: t }))} />
-              <TextInput style={styles.input} placeholder="Model" placeholderTextColor="#8A8A8A" value={vehicle.model} onChangeText={(t) => setVehicle(v => ({ ...v, model: t }))} />
-              <TextInput style={styles.input} placeholder="Plate" placeholderTextColor="#8A8A8A" value={vehicle.plate} onChangeText={(t) => setVehicle(v => ({ ...v, plate: t }))} autoCapitalize="characters" />
-              <TextInput style={styles.input} placeholder="Color (optional)" placeholderTextColor="#8A8A8A" value={vehicle.color} onChangeText={(t) => setVehicle(v => ({ ...v, color: t }))} />
-              <TextInput style={styles.input} placeholder="Year (optional)" placeholderTextColor="#8A8A8A" value={vehicle.year ? String(vehicle.year) : ""} onChangeText={(t) => setVehicle(v => ({ ...v, year: t ? Number(t) : undefined }))} keyboardType="numeric" />
-              <TouchableOpacity style={styles.primaryBtn} onPress={onRegister} disabled={sending}>
-                {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create</Text>}
+              <TextInput style={styles.input} placeholder="Make" placeholderTextColor="#8A8A8A" onChangeText={(t)=>setValue('make', t)} />
+              {errors.make ? <Text style={styles.errText}>{errors.make.message}</Text> : null}
+              <TextInput style={styles.input} placeholder="Model" placeholderTextColor="#8A8A8A" onChangeText={(t)=>setValue('model', t)} />
+              {errors.model ? <Text style={styles.errText}>{errors.model.message}</Text> : null}
+              <TextInput style={styles.input} placeholder="Plate" placeholderTextColor="#8A8A8A" autoCapitalize="characters" onChangeText={(t)=>setValue('plate', t)} />
+              {errors.plate ? <Text style={styles.errText}>{errors.plate.message}</Text> : null}
+
+              <TextInput style={styles.input} placeholder="Color (optional)" placeholderTextColor="#8A8A8A" onChangeText={(t)=>setValue('color', t)} />
+              <TextInput style={styles.input} placeholder="Year (optional)" placeholderTextColor="#8A8A8A" keyboardType="numeric" onChangeText={(t)=>setValue('year', t)} />
+
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleSubmit(onRegister)} disabled={isSubmitting}>
+                {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create</Text>}
               </TouchableOpacity>
             </View>
           ) : (
@@ -117,17 +156,26 @@ export default function HomeScreen() {
               <Text style={styles.infoText}>Phone: {driver.phone}</Text>
               <Text style={styles.infoText}>Vehicle: {driver.vehicle.make} {driver.vehicle.model} • {driver.vehicle.plate}</Text>
               <Text style={styles.infoText}>Status: <Text style={{ color: driver.online ? '#22c55e' : '#ef4444' }}>{driver.online ? 'Online' : 'Offline'}</Text></Text>
+
               <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: driver.online ? '#ef4444' : '#22c55e' }]} onPress={onToggle} disabled={sending}>
                 {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{driver.online ? 'Go Offline' : 'Go Online'}</Text>}
               </TouchableOpacity>
+
               <View style={styles.row}>
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Latitude" placeholderTextColor="#8A8A8A" keyboardType="numeric" value={lat} onChangeText={setLat} />
                 <View style={{ width: 8 }} />
                 <TextInput style={[styles.input, { flex: 1 }]} placeholder="Longitude" placeholderTextColor="#8A8A8A" keyboardType="numeric" value={lng} onChangeText={setLng} />
               </View>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={onSendLocation} disabled={sending || !lat || !lng}>
-                {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Location</Text>}
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity style={[styles.secondaryBtn, { flex: 1 }]} onPress={onSendLocation} disabled={sending || !lat || !lng}>
+                  {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Location</Text>}
+                </TouchableOpacity>
+                <View style={{ width: 8 }} />
+                <TouchableOpacity style={[styles.secondaryBtn, { flex: 1, backgroundColor: '#22c55e' }]} onPress={requestAndSendCurrentLocation}>
+                  <Text style={styles.btnText}>Use Current Location</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity style={styles.ghostBtn} onPress={() => driver && refetchDriver(driver.id).then(setDriver)}>
                 <Text style={styles.ghostText}>Refresh</Text>
               </TouchableOpacity>
@@ -158,4 +206,5 @@ const styles = StyleSheet.create({
   errorBox: { backgroundColor: '#3b1a1a', borderColor: '#5e2a2a', borderWidth: 1, padding: 10, borderRadius: 10, marginBottom: 12 },
   errorText: { color: '#ffb4b4' },
   infoText: { color: '#e5e7eb', marginTop: 4 },
+  errText: { color: '#ffb4b4', marginTop: -6, marginBottom: 8, marginLeft: 4 },
 });

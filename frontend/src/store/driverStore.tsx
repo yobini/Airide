@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import Constants from "expo-constants";
+import { MMKV } from "react-native-mmkv";
 
 // Types
 export type Vehicle = { make: string; model: string; plate: string; color?: string; year?: number };
@@ -28,10 +29,36 @@ type Ctx = {
 const BACKEND_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || (Constants as any).expoConfig?.extra?.backendUrl || "";
 
 const DriverContext = createContext<Ctx | undefined>(undefined);
+const storage = new MMKV({ id: "airide-driver" });
+const DRIVER_KEY = "driver_json";
 
 export function DriverProvider({ children }: { children: React.ReactNode }) {
   const apiBase = useMemo(() => `${BACKEND_BASE}/api`, []);
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [driver, _setDriver] = useState<Driver | null>(null);
+
+  // Load from MMKV on mount
+  useEffect(() => {
+    try {
+      const raw = storage.getString(DRIVER_KEY);
+      if (raw) {
+        const parsed: Driver = JSON.parse(raw);
+        _setDriver(parsed);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  // Persist changes
+  const setDriver = (d: Driver | null) => {
+    _setDriver(d);
+    try {
+      if (d) storage.set(DRIVER_KEY, JSON.stringify(d));
+      else storage.delete(DRIVER_KEY);
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const registerDriver = async (payload: { name: string; phone: string; vehicle: Vehicle }) => {
     const res = await fetch(`${apiBase}/drivers/register`, {

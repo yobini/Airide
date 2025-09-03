@@ -86,7 +86,7 @@ class LocationUpdate(BaseModel):
     heading: Optional[float] = None
 
 async def _get_driver_or_404(driver_id: str) -> dict:
-    driver = await db.drivers.find_one({"id": driver_id})
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0})
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
     return driver

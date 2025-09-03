@@ -147,7 +147,7 @@ def calculate_distance(pickup: Location, destination: Location) -> float:
 @api_router.post("/auth/send-code")
 async def send_verification_code(user_data: UserLogin):
     """Send verification code (mocked)"""
-    code = generate_verification_code()
+    code = "123456"  # Mock code for testing
     verification_codes[user_data.phone] = code
     print(f"Verification code for {user_data.phone}: {code}")  # In production, send SMS
     return {"message": "Verification code sent", "success": True}

@@ -458,8 +458,8 @@ def test_trips_listing(driver_id):
     
     try:
         # Use a wide date range to capture all trips
-        start_date = "2024-01-01T00:00:00Z"
-        end_date = "2024-12-31T23:59:59Z"
+        start_date = "2025-01-01T00:00:00Z"
+        end_date = "2025-12-31T23:59:59Z"
         
         url = f"{API_BASE_URL}/drivers/{driver_id}/trips"
         params = {

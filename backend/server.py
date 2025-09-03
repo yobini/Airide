@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Query
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -150,6 +150,122 @@ async def update_location(driver_id: str, loc: LocationUpdate):
     )
     driver = await db.drivers.find_one({"id": driver_id})
     return DriverOut(**driver)
+
+
+# =====================================
+# Trips & Earnings
+# =====================================
+class TripCreate(BaseModel):
+    fare: float
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    distance_km: Optional[float] = None
+
+class TripOut(BaseModel):
+    id: str
+    driver_id: str
+    fare: float
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    distance_km: Optional[float] = None
+
+class TripWithFee(BaseModel):
+    id: str
+    fare: float
+    service_fee: float
+    created_at: datetime
+
+class EarningsSummary(BaseModel):
+    driver_id: str
+    start: datetime
+    end: datetime
+    trip_count: int
+    total_fares: float
+    total_service_fees: float
+    net_amount: float
+    trips: List[TripWithFee]
+
+def compute_service_fee(fare: float) -> float:
+    # Assumptions while waiting for clarification:
+    # - fare <= 10: $1
+    # - 10 < fare < 20: $2
+    # - 20 <= fare <= 30: $2 (not specified; defaulting to $2)
+    # - fare > 30: $3
+    if fare <= 10:
+        return 1.0
+    if fare > 10 and fare < 20:
+        return 2.0
+    if fare > 30:
+        return 3.0
+    # covers 20..30 inclusive
+    return 2.0
+
+@api_router.post("/drivers/{driver_id}/trips", response_model=TripOut)
+async def create_trip(driver_id: str, trip: TripCreate):
+    _ = await _get_driver_or_404(driver_id)
+    now = datetime.utcnow()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "driver_id": driver_id,
+        "fare": float(trip.fare),
+        "created_at": now,
+        "started_at": trip.started_at,
+        "ended_at": trip.ended_at,
+        "distance_km": trip.distance_km,
+    }
+    await db.trips.insert_one(doc)
+    return TripOut(**doc)
+
+@api_router.get("/drivers/{driver_id}/trips", response_model=List[TripOut])
+async def list_trips(
+    driver_id: str,
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+):
+    _ = await _get_driver_or_404(driver_id)
+    q = {"driver_id": driver_id}
+    if start or end:
+        time_filter = {}
+        if start:
+            time_filter["$gte"] = start
+        if end:
+            time_filter["$lte"] = end
+        q["created_at"] = time_filter
+    trips = await db.trips.find(q).sort("created_at", -1).to_list(1000)
+    return [TripOut(**t) for t in trips]
+
+@api_router.get("/drivers/{driver_id}/earnings", response_model=EarningsSummary)
+async def earnings(
+    driver_id: str,
+    start: datetime,
+    end: datetime,
+):
+    _ = await _get_driver_or_404(driver_id)
+    q = {"driver_id": driver_id, "created_at": {"$gte": start, "$lte": end}}
+    trips = await db.trips.find(q).to_list(2000)
+    trip_with_fees: List[TripWithFee] = []
+    total_fares = 0.0
+    total_fees = 0.0
+    for t in trips:
+        fare = float(t.get("fare", 0.0))
+        fee = compute_service_fee(fare)
+        total_fares += fare
+        total_fees += fee
+        trip_with_fees.append(
+            TripWithFee(id=t["id"], fare=fare, service_fee=fee, created_at=t["created_at"])  # type: ignore
+        )
+    net = total_fares - total_fees
+    return EarningsSummary(
+        driver_id=driver_id,
+        start=start,
+        end=end,
+        trip_count=len(trip_with_fees),
+        total_fares=round(total_fares, 2),
+        total_service_fees=round(total_fees, 2),
+        net_amount=round(net, 2),
+        trips=trip_with_fees,
+    )
 
 
 # Include the router in the main app

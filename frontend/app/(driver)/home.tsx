@@ -3,6 +3,8 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, Scroll
 import { useDriver } from "../../src/store/driverStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
+import * as TaskManager from "expo-task-manager";
+import { BACKGROUND_TASK } from "./_background";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +26,7 @@ export default function HomeScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
 
-  const { control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<RegForm>({
+  const { setValue, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegForm>({
     resolver: zodResolver(regSchema),
     defaultValues: { name: "", phone: "", make: "", model: "", plate: "", color: "", year: "" },
   });
@@ -33,6 +35,7 @@ export default function HomeScreen() {
   const [lng, setLng] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bgActive, setBgActive] = useState(false);
 
   useEffect(() => {
     const id = params?.id as string | undefined;
@@ -108,6 +111,43 @@ export default function HomeScreen() {
     }
   }, [driver, sendLocation, setDriver]);
 
+  const startBackground = useCallback(async () => {
+    try {
+      const fg = await Location.requestForegroundPermissionsAsync();
+      if (fg.status !== "granted") { Alert.alert("Permission required", "Foreground location needed."); return; }
+      const bg = await Location.requestBackgroundPermissionsAsync();
+      if (bg.status !== "granted") { Alert.alert("Permission required", "Background location needed."); return; }
+
+      const started = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK);
+      if (!started) {
+        await Location.startLocationUpdatesAsync(BACKGROUND_TASK, {
+          accuracy: Location.Accuracy.Balanced,
+          showsBackgroundLocationIndicator: true,
+          timeInterval: 30_000,
+          distanceInterval: 50,
+          pausesUpdatesAutomatically: true,
+          foregroundService: {
+            notificationTitle: "Airide Driver",
+            notificationBody: "Sharing location in background",
+          },
+        });
+      }
+      setBgActive(true);
+    } catch (e: any) {
+      setError(e.message || "Unable to start background updates");
+    }
+  }, []);
+
+  const stopBackground = useCallback(async () => {
+    try {
+      const started = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_TASK);
+      if (started) await Location.stopLocationUpdatesAsync(BACKGROUND_TASK);
+      setBgActive(false);
+    } catch (e: any) {
+      setError(e.message || "Unable to stop background updates");
+    }
+  }, []);
+
   const Logo = () => (
     <View style={styles.logoRow}>
       <View style={styles.logoDot} />
@@ -125,7 +165,6 @@ export default function HomeScreen() {
               <Text style={styles.sectionTitle}>Register Driver</Text>
               {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
 
-              {/* Simple controlled inputs with RHF via setValue */}
               <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#8A8A8A" onChangeText={(t)=>setValue('name', t)} />
               {errors.name ? <Text style={styles.errText}>{errors.name.message}</Text> : null}
 
@@ -174,6 +213,18 @@ export default function HomeScreen() {
                 <TouchableOpacity style={[styles.secondaryBtn, { flex: 1, backgroundColor: '#22c55e' }]} onPress={requestAndSendCurrentLocation}>
                   <Text style={styles.btnText}>Use Current Location</Text>
                 </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                {!bgActive ? (
+                  <TouchableOpacity style={[styles.secondaryBtn, { flex: 1, backgroundColor: '#16a34a' }]} onPress={startBackground}>
+                    <Text style={styles.btnText}>Start Background</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={[styles.secondaryBtn, { flex: 1, backgroundColor: '#ef4444' }]} onPress={stopBackground}>
+                    <Text style={styles.btnText}>Stop Background</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TouchableOpacity style={styles.ghostBtn} onPress={() => driver && refetchDriver(driver.id).then(setDriver)}>

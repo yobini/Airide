@@ -492,7 +492,7 @@ def run_comprehensive_test():
         # Get ride details
         test_get_ride(test_ride['id'])
         
-        # Get available rides
+        # Get available rides (should include our new ride)
         available_rides = test_get_available_rides()
         
         # Driver accepts the ride

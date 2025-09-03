@@ -215,6 +215,24 @@ async def create_ride(ride_data: RideCreate, rider_id: str):
     await db.rides.insert_one(ride.dict())
     return ride
 
+@api_router.get("/rides/available")
+async def get_available_rides():
+    """Get rides waiting for drivers"""
+    rides = await db.rides.find({"status": "requested"}).to_list(50)
+    return [Ride(**ride) for ride in rides]
+
+@api_router.get("/rides/rider/{rider_id}")
+async def get_rider_rides(rider_id: str):
+    """Get all rides for a rider"""
+    rides = await db.rides.find({"riderId": rider_id}).sort("createdAt", -1).to_list(50)
+    return [Ride(**ride) for ride in rides]
+
+@api_router.get("/rides/driver/{driver_id}")
+async def get_driver_rides(driver_id: str):
+    """Get all rides for a driver"""
+    rides = await db.rides.find({"driverId": driver_id}).sort("createdAt", -1).to_list(50)
+    return [Ride(**ride) for ride in rides]
+
 @api_router.get("/rides/{ride_id}", response_model=Ride)
 async def get_ride(ride_id: str):
     """Get ride by ID"""
@@ -231,24 +249,6 @@ async def update_ride(ride_id: str, update_data: RideUpdate):
         {"$set": update_data.dict(exclude_unset=True)}
     )
     return {"message": "Ride updated successfully"}
-
-@api_router.get("/rides/rider/{rider_id}")
-async def get_rider_rides(rider_id: str):
-    """Get all rides for a rider"""
-    rides = await db.rides.find({"riderId": rider_id}).sort("createdAt", -1).to_list(50)
-    return [Ride(**ride) for ride in rides]
-
-@api_router.get("/rides/driver/{driver_id}")
-async def get_driver_rides(driver_id: str):
-    """Get all rides for a driver"""
-    rides = await db.rides.find({"driverId": driver_id}).sort("createdAt", -1).to_list(50)
-    return [Ride(**ride) for ride in rides]
-
-@api_router.get("/rides/available")
-async def get_available_rides():
-    """Get rides waiting for drivers"""
-    rides = await db.rides.find({"status": "requested"}).to_list(50)
-    return [Ride(**ride) for ride in rides]
 
 # Driver Routes
 @api_router.put("/drivers/{driver_id}/location")

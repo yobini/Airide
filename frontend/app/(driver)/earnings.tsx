@@ -21,7 +21,7 @@ export default function DriverEarnings() {
           <Text style={styles.summaryTitle}>Today's Summary</Text>
           <View style={styles.summaryStats}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>0 ETB</Text>
+              <Text style={styles.summaryValue}>$0.00</Text>
               <Text style={styles.summaryLabel}>Total Earned</Text>
             </View>
             <View style={styles.summaryItem}>

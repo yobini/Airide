@@ -148,7 +148,7 @@ async def update_location(driver_id: str, loc: LocationUpdate):
         {"id": driver_id},
         {"$set": {"latest_location": location_doc, "updated_at": now}},
     )
-    driver = await db.drivers.find_one({"id": driver_id})
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0})
     return DriverOut(**driver)
 
 

@@ -163,13 +163,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Test backend Status API endpoints"
+    - "Add and test Driver endpoints: register, online/offline, location update"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Please validate backend endpoints first. Frontend wiring will follow after confirmation."
+    message: "Implementing driver-focused backend. Please test new endpoints after creation."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE: All API endpoints verified and working correctly. Created /app/backend_test.py for comprehensive testing. GET /api/ returns Hello World, POST /api/status creates StatusCheck objects with proper UUID/timestamp, GET /api/status returns array of all status checks. Data persistence confirmed via MongoDB. Ready for frontend integration."

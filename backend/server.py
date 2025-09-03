@@ -132,9 +132,9 @@ verification_codes = {}
 
 # Helper function to calculate fare
 def calculate_fare(distance: float) -> float:
-    base_fare = 50.0  # Ethiopian Birr
-    per_km = 15.0
-    return base_fare + (distance * per_km)
+    base_fare = 2.50  # USD base fare
+    per_km = 1.20  # USD per kilometer
+    return round(base_fare + (distance * per_km), 2)
 
 # Helper function to calculate distance (simplified)
 def calculate_distance(pickup: Location, destination: Location) -> float:

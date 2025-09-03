@@ -243,7 +243,7 @@ async def earnings(
 ):
     _ = await _get_driver_or_404(driver_id)
     q = {"driver_id": driver_id, "created_at": {"$gte": start, "$lte": end}}
-    trips = await db.trips.find(q).to_list(2000)
+    trips = await db.trips.find(q, {"_id": 0}).to_list(2000)
     trip_with_fees: List[TripWithFee] = []
     total_fares = 0.0
     total_fees = 0.0

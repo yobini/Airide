@@ -232,7 +232,7 @@ async def list_trips(
         if end:
             time_filter["$lte"] = end
         q["created_at"] = time_filter
-    trips = await db.trips.find(q).sort("created_at", -1).to_list(1000)
+    trips = await db.trips.find(q, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return [TripOut(**t) for t in trips]
 
 @api_router.get("/drivers/{driver_id}/earnings", response_model=EarningsSummary)

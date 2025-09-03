@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, status
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,9 +6,11 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 import uuid
 from datetime import datetime
+import random
+import string
 
 
 ROOT_DIR = Path(__file__).parent
@@ -26,31 +28,120 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 
-# Define Models
-class StatusCheck(BaseModel):
+# Location Model
+class Location(BaseModel):
+    latitude: float
+    longitude: float
+    address: Optional[str] = None
+
+# Vehicle Model
+class Vehicle(BaseModel):
+    make: str
+    model: str
+    year: str
+    plateNumber: str
+
+# User Models
+class UserProfile(BaseModel):
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+
+class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    phone: str
+    userType: str  # 'rider' | 'driver'
+    language: str = 'en'  # 'en' | 'am'
+    profile: Optional[UserProfile] = None
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+class UserCreate(BaseModel):
+    phone: str
+    userType: str
+    language: str = 'en'
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
+class UserLogin(BaseModel):
+    phone: str
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
+class VerifyCode(BaseModel):
+    phone: str
+    code: str
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+# Driver Models
+class Driver(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: Optional[str] = None
+    phone: str
+    location: Optional[Location] = None
+    vehicle: Optional[Vehicle] = None
+    rating: float = 5.0
+    isOnline: bool = False
+    totalRides: int = 0
+    earnings: float = 0.0
+
+class DriverLocationUpdate(BaseModel):
+    latitude: float
+    longitude: float
+
+class DriverStatusUpdate(BaseModel):
+    isOnline: bool
+
+# Ride Models
+class Ride(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    riderId: str
+    driverId: Optional[str] = None
+    pickup: Location
+    destination: Location
+    status: str = 'requested'  # 'requested' | 'accepted' | 'driverArriving' | 'inProgress' | 'completed' | 'cancelled'
+    fare: float = 0.0
+    distance: float = 0.0
+    duration: str = "0 min"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    completedAt: Optional[datetime] = None
+
+class RideCreate(BaseModel):
+    pickup: Location
+    destination: Location
+
+class RideUpdate(BaseModel):
+    status: str
+    driverId: Optional[str] = None
+
+# Rating Model
+class Rating(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    rideId: str
+    raterId: str  # Who is giving the rating
+    ratedId: str  # Who is being rated
+    rating: int
+    comment: Optional[str] = None
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class RatingCreate(BaseModel):
+    rideId: str
+    ratedId: str
+    rating: int
+    comment: Optional[str] = None
+
+# Mock SMS Service
+def generate_verification_code():
+    return ''.join(random.choices(string.digits, k=6))
+
+# Store verification codes in memory (in production, use Redis)
+verification_codes = {}
+
+# Helper function to calculate fare
+def calculate_fare(distance: float) -> float:
+    base_fare = 50.0  # Ethiopian Birr
+    per_km = 15.0
+    return base_fare + (distance * per_km)
+
+# Helper function to calculate distance (simplified)
+def calculate_distance(pickup: Location, destination: Location) -> float:
+    # Simple distance calculation (in production, use proper geolocation)
+    lat_diff = pickup.latitude - destination.latitude
+    lon_diff = pickup.longitude - destination.longitude
+    return ((lat_diff ** 2 + lon_diff ** 2) ** 0.5) * 111  # Rough conversion to km
 
 # Include the router in the main app
 app.include_router(api_router)

@@ -1,9 +1,12 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDriver } from "../../src/store/driverStore";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 export default function HomeScreen() {
-  const { apiBase, driver, setDriver, registerDriver, toggleOnline, sendLocation, refetchDriver } = useDriver();
+  const { driver, setDriver, registerDriver, toggleOnline, sendLocation, refetchDriver } = useDriver();
+  const params = useLocalSearchParams<{ id?: string }>();
+  const router = useRouter();
 
   // Local state for registration
   const [name, setName] = useState("");
@@ -13,6 +16,14 @@ export default function HomeScreen() {
   const [lng, setLng] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If we have id in the URL and no driver loaded, fetch it
+    const id = params?.id as string | undefined;
+    if (id && !driver) {
+      refetchDriver(id).then(setDriver).catch(() => {});
+    }
+  }, [params?.id]);
 
   const onRegister = useCallback(async () => {
     if (!name.trim() || !phone.trim() || !vehicle.make.trim() || !vehicle.model.trim() || !vehicle.plate.trim()) {
@@ -24,12 +35,14 @@ export default function HomeScreen() {
     try {
       const d = await registerDriver({ name, phone, vehicle: { ...vehicle, year: vehicle.year ? Number(vehicle.year) : undefined } });
       setDriver(d);
+      // Persist via URL param so reloads keep session
+      router.replace({ pathname: "./home", params: { id: d.id } });
     } catch (e: any) {
       setError(e.message || "Register failed");
     } finally {
       setSending(false);
     }
-  }, [name, phone, vehicle, registerDriver, setDriver]);
+  }, [name, phone, vehicle, registerDriver, setDriver, router]);
 
   const onToggle = useCallback(async () => {
     if (!driver) return;
@@ -115,7 +128,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={styles.secondaryBtn} onPress={onSendLocation} disabled={sending || !lat || !lng}>
                 {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Location</Text>}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => driver && refetchDriver(driver.id)}>
+              <TouchableOpacity style={styles.ghostBtn} onPress={() => driver && refetchDriver(driver.id).then(setDriver)}>
                 <Text style={styles.ghostText}>Refresh</Text>
               </TouchableOpacity>
             </View>

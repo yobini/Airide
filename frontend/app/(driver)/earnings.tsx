@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View, FlatList, TouchableOpacity } from "react-native";
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput } from "react-native";
 import { useDriver } from "../../src/store/driverStore";
 
 type TripWithFee = { id: string; fare: number; service_fee: number; created_at: string };
@@ -31,11 +31,13 @@ function getWeekRange(date: Date) {
 }
 
 export default function EarningsScreen() {
-  const { driver, apiBase } = useDriver();
+  const { driver, apiBase, createTrip } = useDriver();
   const [summary, setSummary] = useState<EarningsSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<Date>(new Date()); // current week cursor
+  const [fareInput, setFareInput] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const { start, end } = useMemo(() => getWeekRange(cursor), [cursor]);
 
@@ -61,6 +63,26 @@ export default function EarningsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driver?.id, start.toISOString(), end.toISOString()]);
 
+  const onAddTrip = async () => {
+    if (!driver) return;
+    const fare = Number(fareInput);
+    if (Number.isNaN(fare) || fare <= 0) {
+      setError("Enter a valid fare > 0");
+      return;
+    }
+    setAdding(true);
+    setError(null);
+    try {
+      await createTrip(driver.id, fare);
+      setFareInput("");
+      await fetchEarnings();
+    } catch (e: any) {
+      setError(e.message || "Add trip failed");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   if (!driver) {
     return (
       <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.muted}>Register a driver first in Home.</Text></View></SafeAreaView>
@@ -75,6 +97,19 @@ export default function EarningsScreen() {
         <TouchableOpacity onPress={() => setCursor(new Date(cursor.getTime() + 7 * 86400000))}><Text style={styles.nav}>Next {">"}</Text></TouchableOpacity>
       </View>
       <Text style={styles.muted}>Week: {start.toUTCString().slice(0, 16)} - {end.toUTCString().slice(0, 16)}</Text>
+
+      <View style={styles.addRow}>
+        <Text style={styles.muted}>Quick Add Trip</Text>
+        <View style={{ height: 8 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TextInput value={fareInput} onChangeText={setFareInput} placeholder="Fare (e.g., 12.50)" placeholderTextColor="#8A8A8A" keyboardType="numeric" style={[styles.input, { flex: 1 }]} />
+          <View style={{ width: 8 }} />
+          <TouchableOpacity style={styles.addBtn} onPress={onAddTrip} disabled={adding || !fareInput}>
+            {adding ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Add</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {loading ? (
         <View style={styles.center}><ActivityIndicator color="#4F46E5" /></View>
       ) : error ? (
@@ -128,6 +163,10 @@ const styles = StyleSheet.create({
   muted: { color: '#9ca3af', paddingHorizontal: 16 },
   error: { color: '#ffb4b4', paddingHorizontal: 16 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  addRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
+  input: { height: 48, borderRadius: 10, borderWidth: 1, borderColor: '#2a2a2a', paddingHorizontal: 12, color: '#fff', backgroundColor: '#1a1a1a' },
+  addBtn: { height: 48, borderRadius: 10, backgroundColor: '#4F46E5', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  btnText: { color: '#fff', fontWeight: '700' },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
   summaryCard: { backgroundColor: '#141414', borderColor: '#232323', borderWidth: 1, borderRadius: 12, padding: 12, minWidth: '46%' },
   summaryLabel: { color: '#c7c7c7', fontSize: 12 },

@@ -22,6 +22,7 @@ type Ctx = {
   toggleOnline: (driverId: string, nextOnline: boolean) => Promise<Driver>;
   sendLocation: (driverId: string, body: { lat: number; lng: number }) => Promise<Driver>;
   refetchDriver: (driverId: string) => Promise<Driver>;
+  createTrip: (driverId: string, fare: number) => Promise<any>;
 };
 
 const BACKEND_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || (Constants as any).expoConfig?.extra?.backendUrl || "";
@@ -65,7 +66,17 @@ export function DriverProvider({ children }: { children: React.ReactNode }) {
     return res.json();
   };
 
-  const value = { apiBase, driver, setDriver, registerDriver, toggleOnline, sendLocation, refetchDriver };
+  const createTrip = async (driverId: string, fare: number) => {
+    const res = await fetch(`${apiBase}/drivers/${driverId}/trips`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fare }),
+    });
+    if (!res.ok) throw new Error(`Create trip failed (${res.status})`);
+    return res.json();
+  };
+
+  const value = { apiBase, driver, setDriver, registerDriver, toggleOnline, sendLocation, refetchDriver, createTrip };
   return <DriverContext.Provider value={value}>{children}</DriverContext.Provider>;
 }
 

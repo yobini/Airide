@@ -109,7 +109,7 @@ backend:
     working: true
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "high"
+    priority: "medium"
     needs_retesting: false
     status_history:
       - working: "NA"
@@ -129,6 +129,17 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Hello World endpoint should respond."
+  - task: "Driver API: Register, Online/Offline, Location Update"
+    implemented: false
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "To implement: POST /api/drivers/register, POST /api/drivers/{id}/online, POST /api/drivers/{id}/offline, POST /api/drivers/{id}/location, GET /api/drivers/{id}."
       - working: true
         agent: "testing"
         comment: "✅ VERIFIED: GET /api/ returns {\"message\":\"Hello World\"} with status 200. Endpoint working correctly."

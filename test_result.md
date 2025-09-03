@@ -106,26 +106,32 @@ user_problem_statement: "Continue from existing generated app; connect frontend 
 backend:
   - task: "Status API: POST /api/status and GET /api/status"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Endpoints exist; need automated verification."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: POST /api/status creates StatusCheck with UUID, client_name, timestamp. GET /api/status returns array of StatusCheck objects. Both endpoints working correctly with proper data persistence. Tested with both Python requests and curl commands."
   - task: "Root API: GET /api/"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "low"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Hello World endpoint should respond."
+      - working: true
+        agent: "testing"
+        comment: "✅ VERIFIED: GET /api/ returns {\"message\":\"Hello World\"} with status 200. Endpoint working correctly."
 frontend:
   - task: "Home Screen: Display static image"
     implemented: true

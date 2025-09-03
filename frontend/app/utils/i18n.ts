@@ -132,7 +132,7 @@ const am = {
     "rateDriver": "ሹፌርን ደረጃ ስጥ",
     "rateRider": "ተሳፋሪን ደረጃ ስጥ",
     "submit": "አስገባ",
-    "fare": "ክፍያ",
+    "fare": "ክፍያ ($)",
     "distance": "ርቀት",
     "duration": "ጊዜ"
   }

@@ -1,0 +1,68 @@
+{
+  "welcome": {
+    "title": "እንኳን ወደ ራይድአፕ መጡ",
+    "subtitle": "የእርስዎ የታመነ የመጓጓዣ አጋር",
+    "selectLanguage": "ቋንቋ ይምረጡ",
+    "continue": "ቀጥል"
+  },
+  "auth": {
+    "phoneNumber": "ስልክ ቁጥር",
+    "enterPhone": "ስልክ ቁጥርዎን ያስገቡ",
+    "sendCode": "ኮድ ላክ",
+    "verifyCode": "ኮድ አረጋግጥ",
+    "enterCode": "የማረጋገጫ ኮድ ያስገቡ",
+    "verify": "አረጋግጥ",
+    "resendCode": "ኮድ እንደገና ላክ"
+  },
+  "userType": {
+    "selectType": "ራይድአፕን እንዴት ይጠቀማሉ?",
+    "rider": "ተሳፋሪ",
+    "driver": "ሹፌር",
+    "riderDesc": "ጉዞ ይቦኩ እና ይጓዙ",
+    "driverDesc": "ይንዱ እና ገንዘብ ያግኙ"
+  },
+  "rider": {
+    "whereToGo": "የት መሄድ ይፈልጋሉ?",
+    "searchDestination": "መድረሻ ይፈልጉ",
+    "bookRide": "ጉዞ ይቦኩ",
+    "yourLocation": "የእርስዎ አካባቢ",
+    "selectPickup": "የመውሰጃ ቦታ ይምረጡ",
+    "findingDriver": "ሹፌር እየተፈለገ...",
+    "driverFound": "ሹፌር ተገኝቷል!",
+    "driverArriving": "ሹፌር እየመጣ ነው",
+    "onTheWay": "ወደ መድረሻ በመንገድ ላይ",
+    "rideCompleted": "ጉዞ ተጠናቋል"
+  },
+  "driver": {
+    "goOnline": "መስመር ላይ ውጣ",
+    "goOffline": "መስመር ላይ ውረድ",
+    "waitingForRides": "የጉዞ ጥያቄዎችን እየጠበቅኩ...",
+    "newRideRequest": "አዲስ የጉዞ ጥያቄ",
+    "accept": "ተቀበል",
+    "decline": "ውድቅ አድርግ",
+    "pickupPassenger": "ተሳፋሪ ውሰድ",
+    "startTrip": "ጉዞ ጀምር",
+    "endTrip": "ጉዞ ጨርስ",
+    "earnings": "የዛሬ ገቢ"
+  },
+  "common": {
+    "cancel": "ሰርዝ",
+    "ok": "እሺ",
+    "back": "ወደ ኋላ",
+    "next": "ቀጣይ",
+    "loading": "እየጫን...",
+    "error": "ስህተት",
+    "success": "ተሳክቷል",
+    "retry": "እንደገና ሞክር",
+    "profile": "መገለጫ",
+    "settings": "ቅንብሮች",
+    "logout": "ውጣ",
+    "rating": "ደረጃ",
+    "rateDriver": "ሹፌርን ደረጃ ስጥ",
+    "rateRider": "ተሳፋሪን ደረጃ ስጥ",
+    "submit": "አስገባ",
+    "fare": "ክፍያ",
+    "distance": "ርቀት",
+    "duration": "ጊዜ"
+  }
+}

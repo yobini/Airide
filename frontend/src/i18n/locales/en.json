@@ -1,0 +1,68 @@
+{
+  "welcome": {
+    "title": "Welcome to RideApp",
+    "subtitle": "Your reliable ride partner",
+    "selectLanguage": "Select Language",
+    "continue": "Continue"
+  },
+  "auth": {
+    "phoneNumber": "Phone Number",
+    "enterPhone": "Enter your phone number",
+    "sendCode": "Send Code",
+    "verifyCode": "Verify Code",
+    "enterCode": "Enter verification code",
+    "verify": "Verify",
+    "resendCode": "Resend Code"
+  },
+  "userType": {
+    "selectType": "How will you use RideApp?",
+    "rider": "Rider",
+    "driver": "Driver",
+    "riderDesc": "Book rides and travel",
+    "driverDesc": "Drive and earn money"
+  },
+  "rider": {
+    "whereToGo": "Where do you want to go?",
+    "searchDestination": "Search destination",
+    "bookRide": "Book Ride",
+    "yourLocation": "Your Location",
+    "selectPickup": "Select Pickup Location",
+    "findingDriver": "Finding Driver...",
+    "driverFound": "Driver Found!",
+    "driverArriving": "Driver is arriving",
+    "onTheWay": "On the way to destination",
+    "rideCompleted": "Ride Completed"
+  },
+  "driver": {
+    "goOnline": "Go Online",
+    "goOffline": "Go Offline",
+    "waitingForRides": "Waiting for ride requests...",
+    "newRideRequest": "New Ride Request",
+    "accept": "Accept",
+    "decline": "Decline",
+    "pickupPassenger": "Pickup Passenger",
+    "startTrip": "Start Trip",
+    "endTrip": "End Trip",
+    "earnings": "Today's Earnings"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "ok": "OK",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Retry",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "rating": "Rating",
+    "rateDriver": "Rate Driver",
+    "rateRider": "Rate Rider",
+    "submit": "Submit",
+    "fare": "Fare",
+    "distance": "Distance",
+    "duration": "Duration"
+  }
+}

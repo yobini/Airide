@@ -72,7 +72,7 @@ export default function DriverHome() {
             <Text style={styles.statLabel}>Today's Rides</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>0 ETB</Text>
+            <Text style={styles.statValue}>$0.00</Text>
             <Text style={styles.statLabel}>{I18n.t('driver.earnings')}</Text>
           </View>
           <View style={styles.statCard}>

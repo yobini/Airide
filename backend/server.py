@@ -117,7 +117,7 @@ async def go_online(driver_id: str):
     _ = await _get_driver_or_404(driver_id)
     now = datetime.utcnow()
     await db.drivers.update_one({"id": driver_id}, {"$set": {"online": True, "updated_at": now}})
-    driver = await db.drivers.find_one({"id": driver_id})
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0})
     return DriverOut(**driver)
 
 @api_router.post("/drivers/{driver_id}/offline", response_model=DriverOut)
@@ -125,7 +125,7 @@ async def go_offline(driver_id: str):
     _ = await _get_driver_or_404(driver_id)
     now = datetime.utcnow()
     await db.drivers.update_one({"id": driver_id}, {"$set": {"online": False, "updated_at": now}})
-    driver = await db.drivers.find_one({"id": driver_id})
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0})
     return DriverOut(**driver)
 
 @api_router.post("/drivers/{driver_id}/location", response_model=DriverOut)

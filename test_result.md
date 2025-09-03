@@ -144,28 +144,28 @@ backend:
         agent: "testing"
         comment: "✅ VERIFIED: GET /api/ returns {\"message\":\"Hello World\"} with status 200. Endpoint working correctly."
 frontend:
-  - task: "Home Screen: Display static image"
+  - task: "Driver Screen: register, online/offline, manual location"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/driver/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented driver registration with vehicle details, online/offline toggle, manual lat/lng location update, and refresh."
+  - task: "Router redirect to /driver"
     implemented: true
     working: true
     file: "/app/frontend/app/index.tsx"
     stuck_count: 0
-    priority: "low"
-    needs_retesting: false
+    priority: "medium"
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
-        comment: "Image renders as splash/landing."
-  - task: "Status Check UI: form + list wired to backend"
-    implemented: false
-    working: "NA"
-    file: "/app/frontend/app/index.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Planned next: add TextInput, submit to /api/status, list recent checks."
+        comment: "Home now redirects to /driver with loading indicator."
 metadata:
   created_by: "main_agent"
   version: "1.0"

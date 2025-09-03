@@ -3,8 +3,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useAuthStore } from '../src/store/authStore';
-import I18n from '../src/i18n';
+import { useAuthStore } from './store/authStore';
+import I18n from './utils/i18n';
 
 export default function RootLayout() {
   const { initializeAuth, user } = useAuthStore();

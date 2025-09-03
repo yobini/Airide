@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import I18n from '../src/i18n';
+import I18n from './utils/i18n';
 
 const { width, height } = Dimensions.get('window');
 

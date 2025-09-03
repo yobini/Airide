@@ -132,9 +132,16 @@ verification_codes = {}
 
 # Helper function to calculate fare
 def calculate_fare(distance: float) -> float:
-    base_fare = 2.50  # USD base fare
-    per_km = 1.20  # USD per kilometer
-    return round(base_fare + (distance * per_km), 2)
+    # Convert distance from km to miles (1 km = 0.621371 miles)
+    distance_in_miles = distance * 0.621371
+    
+    # Calculate fare: $1.00 per mile
+    calculated_fare = distance_in_miles * 1.00
+    
+    # Apply minimum fare of $7.00
+    final_fare = max(7.00, calculated_fare)
+    
+    return round(final_fare, 2)
 
 # Helper function to calculate distance (simplified)
 def calculate_distance(pickup: Location, destination: Location) -> float:

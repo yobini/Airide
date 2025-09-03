@@ -142,8 +142,8 @@ async def update_location(driver_id: str, loc: LocationUpdate):
         "timestamp": now,
     }
     # Append to history collection
-    await db.driver_locations.insert_one(location_doc)
-    # Update latest on driver
+    await db.driver_locations.insert_one(location_doc.copy())
+    # Update latest on driver (use clean copy without MongoDB _id)
     await db.drivers.update_one(
         {"id": driver_id},
         {"$set": {"latest_location": location_doc, "updated_at": now}},

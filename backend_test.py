@@ -12,9 +12,8 @@ class AirideAPITester:
         self.driver_token = None
         self.tests_run = 0
         self.tests_passed = 0
-        self.test_phone_passenger = f"+1555{datetime.now().strftime('%H%M%S')}"
-        self.test_phone_driver = f"+1666{datetime.now().strftime('%H%M%S')}"
-        self.verification_codes = {}
+        self.test_email_passenger = f"test_passenger_{datetime.now().strftime('%H%M%S')}@example.com"
+        self.test_email_driver = f"test_driver_{datetime.now().strftime('%H%M%S')}@example.com"
 
     def log_test(self, name, success, details=""):
         """Log test results"""

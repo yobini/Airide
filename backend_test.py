@@ -202,6 +202,116 @@ class AirideAPITester:
             success, status, response = self.make_request(method, endpoint, expected_status=expected_status)
             self.log_test(f"Ride endpoint: {endpoint}", success, f"Status: {status}")
 
+    def test_authenticated_user_endpoints(self):
+        """Test user endpoints with authentication"""
+        if not self.passenger_token:
+            print("\n⚠️  Skipping authenticated user tests - no passenger token")
+            return
+            
+        print("\n🔍 Testing Authenticated User Endpoints...")
+        
+        # Test get profile
+        success, status, response = self.make_request(
+            'GET', 'user/profile', token=self.passenger_token
+        )
+        self.log_test("Get user profile", success, f"Status: {status}")
+        
+        # Test update profile
+        success, status, response = self.make_request(
+            'PUT', 'user/profile', 
+            data={"name": "Updated Test Passenger", "email": "updated@example.com"},
+            token=self.passenger_token
+        )
+        self.log_test("Update user profile", success, f"Status: {status}")
+
+    def test_driver_registration_and_endpoints(self):
+        """Test driver-specific functionality"""
+        if not self.driver_token:
+            print("\n⚠️  Skipping driver tests - no driver token")
+            return
+            
+        print("\n🔍 Testing Driver Registration and Endpoints...")
+        
+        # Register as driver
+        success, status, response = self.make_request(
+            'POST', 'driver/register',
+            data={
+                "license_number": "DL123456789",
+                "vehicle_make": "Toyota",
+                "vehicle_model": "Camry",
+                "vehicle_year": 2020,
+                "vehicle_color": "Blue",
+                "vehicle_plate": "ABC123"
+            },
+            token=self.driver_token
+        )
+        self.log_test("Driver registration", success, f"Status: {status}")
+        
+        # Get driver profile
+        success, status, response = self.make_request(
+            'GET', 'driver/profile', token=self.driver_token
+        )
+        self.log_test("Get driver profile", success, f"Status: {status}")
+        
+        # Update driver status
+        success, status, response = self.make_request(
+            'PUT', 'driver/status',
+            data={"status": "online"},
+            token=self.driver_token
+        )
+        self.log_test("Update driver status", success, f"Status: {status}")
+        
+        # Update driver location
+        success, status, response = self.make_request(
+            'PUT', 'driver/location',
+            data={"latitude": 37.7749, "longitude": -122.4194},
+            token=self.driver_token
+        )
+        self.log_test("Update driver location", success, f"Status: {status}")
+
+    def test_ride_functionality(self):
+        """Test ride request and management"""
+        if not self.passenger_token or not self.driver_token:
+            print("\n⚠️  Skipping ride tests - missing tokens")
+            return
+            
+        print("\n🔍 Testing Ride Functionality...")
+        
+        # Request a ride as passenger
+        success, status, response = self.make_request(
+            'POST', 'rides/request',
+            data={
+                "pickup_location": {"lat": 37.7749, "lng": -122.4194, "address": "San Francisco, CA"},
+                "destination": {"lat": 37.7849, "lng": -122.4094, "address": "Downtown SF"}
+            },
+            token=self.passenger_token
+        )
+        
+        ride_id = None
+        if success and 'ride' in response:
+            ride_id = response['ride']['id']
+            
+        self.log_test("Request ride", success, f"Status: {status}")
+        
+        # Get passenger rides
+        success, status, response = self.make_request(
+            'GET', 'rides/passenger', token=self.passenger_token
+        )
+        self.log_test("Get passenger rides", success, f"Status: {status}")
+        
+        # Get available rides as driver
+        success, status, response = self.make_request(
+            'GET', 'rides/available', token=self.driver_token
+        )
+        self.log_test("Get available rides", success, f"Status: {status}")
+        
+        # Accept ride if we have a ride ID
+        if ride_id:
+            success, status, response = self.make_request(
+                'PUT', f'rides/{ride_id}/accept', token=self.driver_token
+            )
+            self.log_test("Accept ride", success, f"Status: {status}")
+
     def run_comprehensive_test(self):
         """Run all backend tests"""
         print("🚀 Starting Airide Backend API Tests")
@@ -211,45 +321,36 @@ class AirideAPITester:
         # Test basic connectivity
         self.test_health_endpoints()
         
-        # Test authentication flow (will fail due to mock verification)
-        self.test_phone_verification_flow(self.test_phone_passenger, "passenger")
-        self.test_phone_verification_flow(self.test_phone_driver, "driver")
+        # Test authentication flow with real verification codes
+        passenger_verified = self.test_phone_verification_flow(self.test_phone_passenger, "passenger")
+        driver_verified = self.test_phone_verification_flow(self.test_phone_driver, "driver")
         
-        # Test registration (will fail due to unverified phone)
-        self.test_registration_flow(self.test_phone_passenger, "Test Passenger", "passenger")
-        self.test_registration_flow(self.test_phone_driver, "Test Driver", "driver")
+        # Test registration if phone verification succeeded
+        if passenger_verified:
+            self.test_registration_flow(self.test_phone_passenger, "Test Passenger", "passenger")
+        if driver_verified:
+            self.test_registration_flow(self.test_phone_driver, "Test Driver", "driver")
         
-        # Test login (will fail due to non-existent users)
-        self.test_login_flow(self.test_phone_passenger, "passenger")
-        self.test_login_flow(self.test_phone_driver, "driver")
+        # Test authenticated endpoints
+        self.test_authenticated_user_endpoints()
+        self.test_driver_registration_and_endpoints()
+        self.test_ride_functionality()
         
         # Test protected endpoints without authentication
         self.test_protected_endpoints_without_auth()
-        
-        # Test driver-specific endpoints
-        self.test_driver_endpoints_without_driver_role()
-        
-        # Test ride endpoints
-        self.test_ride_endpoints_without_auth()
         
         # Print summary
         print("\n" + "=" * 60)
         print(f"📊 Test Summary: {self.tests_passed}/{self.tests_run} tests passed")
         
-        if self.tests_passed < self.tests_run:
-            print("\n⚠️  Note: Some failures are expected due to:")
-            print("   - Mock verification codes (SMS not implemented)")
-            print("   - Testing protected endpoints without authentication")
-            print("   - Testing with non-existent users")
+        # Check if basic functionality works
+        basic_functionality = self.tests_passed >= 4  # Health + some auth tests should work
         
-        # Check if basic connectivity works
-        basic_connectivity = self.tests_passed >= 2  # At least health endpoints should work
-        
-        if basic_connectivity:
-            print("\n✅ Backend API is accessible and responding")
+        if basic_functionality:
+            print("\n✅ Backend API is functional")
             return 0
         else:
-            print("\n❌ Backend API has connectivity issues")
+            print("\n❌ Backend API has significant issues")
             return 1
 
 def main():

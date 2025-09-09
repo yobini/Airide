@@ -62,6 +62,23 @@ class AirideAPITester:
         success, status, response = self.make_request('GET', 'health')
         self.log_test("Health check", success, f"Status: {status}")
 
+    def get_verification_code_from_logs(self, phone_number):
+        """Extract verification code from backend logs"""
+        try:
+            import subprocess
+            result = subprocess.run(['tail', '-n', '20', '/var/log/supervisor/backend.out.log'], 
+                                  capture_output=True, text=True)
+            logs = result.stdout
+            
+            # Look for SMS verification code for this phone number
+            for line in logs.split('\n'):
+                if f"SMS Verification Code for {phone_number}:" in line:
+                    code = line.split(':')[-1].strip()
+                    return code
+            return None
+        except:
+            return None
+
     def test_phone_verification_flow(self, phone_number, user_type="passenger"):
         """Test phone verification process"""
         print(f"\n🔍 Testing Phone Verification for {user_type}...")
@@ -76,22 +93,27 @@ class AirideAPITester:
         if not self.log_test(f"Send verification code ({user_type})", success, f"Status: {status}"):
             return False
         
-        # For testing, we'll use a mock verification code since SMS is logged to console
-        # In real testing, you'd extract this from logs
-        mock_code = "123456"  # This would normally come from console logs
-        self.verification_codes[phone_number] = mock_code
+        # Wait a moment for logs to be written
+        time.sleep(1)
+        
+        # Get the actual verification code from logs
+        verification_code = self.get_verification_code_from_logs(phone_number)
+        
+        if not verification_code:
+            self.log_test(f"Get verification code ({user_type})", False, "Could not extract code from logs")
+            return False
+        
+        print(f"   📱 Found verification code: {verification_code}")
+        self.verification_codes[phone_number] = verification_code
         
         # Verify phone
         success, status, response = self.make_request(
             'POST',
             'auth/verify-phone',
-            {"phone_number": phone_number, "verification_code": mock_code},
-            expected_status=400  # Expected to fail with mock code
+            {"phone_number": phone_number, "verification_code": verification_code}
         )
         
-        # Since we're using mock code, this will fail - that's expected
-        self.log_test(f"Verify phone ({user_type})", False, "Expected failure with mock code")
-        return False
+        return self.log_test(f"Verify phone ({user_type})", success, f"Status: {status}")
 
     def test_registration_flow(self, phone_number, name, role):
         """Test user registration"""

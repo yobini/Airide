@@ -360,11 +360,14 @@ async def email_login(request: EmailLoginRequest):
 async def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
+class UserProfileUpdate(BaseModel):
+    name: str
+    
 @api_router.put("/user/profile")
-async def update_profile(name: str, current_user: User = Depends(get_current_user)):
+async def update_profile(profile_data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
     await db.users.update_one(
         {"id": current_user.id},
-        {"$set": {"name": name, "updated_at": datetime.utcnow()}}
+        {"$set": {"name": profile_data.name, "updated_at": datetime.utcnow()}}
     )
     return {"message": "Profile updated successfully"}
 

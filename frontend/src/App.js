@@ -22,25 +22,45 @@ function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = async () => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Verify token and get user data
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUserProfile();
+      try {
+        // Set the authorization header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Try to decode the token to check if it's expired
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        
+        if (tokenPayload.exp && tokenPayload.exp < currentTime) {
+          // Token is expired
+          logout();
+          return;
+        }
+        
+        // Fetch user profile to verify token is still valid
+        await fetchUserProfile();
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        logout();
+      }
     } else {
       setLoading(false);
     }
-  }, []);
+  };
 
   const fetchUserProfile = async () => {
     try {
       const response = await axios.get(`${API}/user/profile`);
       setUser(response.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       logout();
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -48,16 +68,18 @@ function AuthProvider({ children }) {
     localStorage.setItem('token', token);
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(userData);
+    setLoading(false);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+    setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, fetchUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -119,7 +119,6 @@ class AirideAPITester:
         """Test user registration"""
         print(f"\n🔍 Testing Registration for {role}...")
         
-        # This will fail because phone verification failed, but we test the endpoint
         success, status, response = self.make_request(
             'POST',
             'auth/register',
@@ -128,12 +127,19 @@ class AirideAPITester:
                 "name": name,
                 "email": f"test_{role}@example.com",
                 "role": role
-            },
-            expected_status=400  # Expected to fail due to unverified phone
+            }
         )
         
-        self.log_test(f"Register {role}", False, "Expected failure - phone not verified")
-        return False
+        if success and 'access_token' in response:
+            if role == 'passenger':
+                self.passenger_token = response['access_token']
+            else:
+                self.driver_token = response['access_token']
+            self.log_test(f"Register {role}", True, f"Status: {status}, Token received")
+            return True
+        else:
+            self.log_test(f"Register {role}", False, f"Status: {status}")
+            return False
 
     def test_login_flow(self, phone_number, user_type):
         """Test login process"""

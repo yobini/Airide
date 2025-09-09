@@ -368,22 +368,38 @@ class AirideAPITester:
 
     def run_comprehensive_test(self):
         """Run all backend tests"""
-        print("🚀 Starting Airide Backend API Tests")
+        print("🚀 Starting Airide Backend API Tests (Updated Authentication System)")
         print(f"Testing against: {self.api_url}")
         print("=" * 60)
         
         # Test basic connectivity
         self.test_health_endpoints()
         
-        # Test authentication flow with real verification codes
-        passenger_verified = self.test_phone_verification_flow(self.test_phone_passenger, "passenger")
-        driver_verified = self.test_phone_verification_flow(self.test_phone_driver, "driver")
+        # Test new authentication system
+        print("\n🔐 Testing New Authentication System...")
         
-        # Test registration if phone verification succeeded
-        if passenger_verified:
-            self.test_registration_flow(self.test_phone_passenger, "Test Passenger", "passenger")
-        if driver_verified:
-            self.test_registration_flow(self.test_phone_driver, "Test Driver", "driver")
+        # Test social authentication
+        google_passenger_success = self.test_social_auth_google("passenger")
+        facebook_driver_success = self.test_social_auth_facebook("driver")
+        
+        # Test email registration
+        email_passenger_success = self.test_email_registration(
+            self.test_email_passenger, "Test Passenger", "password123", "passenger"
+        )
+        email_driver_success = self.test_email_registration(
+            self.test_email_driver, "Test Driver", "password123", "driver"
+        )
+        
+        # Test email login with registered users
+        if email_passenger_success:
+            self.test_email_login(self.test_email_passenger, "password123", "passenger")
+        if email_driver_success:
+            self.test_email_login(self.test_email_driver, "password123", "driver")
+        
+        # Test error cases
+        self.test_duplicate_email_registration()
+        self.test_invalid_login_credentials()
+        self.test_invalid_social_token()
         
         # Test authenticated endpoints
         self.test_authenticated_user_endpoints()

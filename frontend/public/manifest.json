@@ -1,0 +1,31 @@
+{
+  "short_name": "Airide",
+  "name": "Airide - Your Ride Anytime",
+  "description": "Safe, reliable, and affordable rides at your fingertips",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMzIiIGZpbGw9IiMxMTE4MjciLz4KPHBhdGggZD0iTTk2IDQ4QzEyNC4xNjYgNDggMTQ0IDY3LjgzNCAxNDQgOTZDMTQ0IDEyNC4xNjYgMTI0LjE2NiAxNDQgOTYgMTQ0QzY3LjgzNCAxNDQgNDggMTI0LjE2NiA0OCA5NkM0OCA2Ny44MzQgNjcuODM0IDQ4IDk2IDQ4WiIgZmlsbD0iI0VBQjMwOCIvPgo8cGF0aCBkPSJNNzYgODBIMTE2VjExMkg3NlY4MFoiIGZpbGw9IiMxMTE4MjciLz4KPGNpcmNsZSBjeD0iODAiIGN5PSIxMDAiIHI9IjQiIGZpbGw9IiNFQUIzMDgiLz4KPGNpcmNsZSBjeD0iMTEyIiBjeT0iMTAwIiByPSI0IiBmaWxsPSIjRUFCMzA4Ii8+Cjwvc3ZnPg==",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iODQiIGZpbGw9IiMxMTE4MjciLz4KPHBhdGggZD0iTTI1NiAxMjhDMzMyLjQ0IDEyOCAzODQgMTc5LjU2IDM4NCAyNTZDMzg0IDMzMi40NCAzMzIuNDQgMzg0IDI1NiAzODRDMTc5LjU2IDM4NCAxMjggMzMyLjQ0IDEyOCAyNTZDMTI4IDE3OS41NiAxNzkuNTYgMTI4IDI1NiAxMjhaIiBmaWxsPSIjRUFCMzA4Ii8+CjxwYXRoIGQ9Ik0yMDQgMjEySDMwOFYzMDBIMjA0VjIxMloiIGZpbGw9IiMxMTE4MjciLz4KPGNpcmNsZSBjeD0iMjI4IiBjeT0iMjY4IiByPSIxMiIgZmlsbD0iI0VBQjMwOCIvPgo8Y2lyY2xlIGN4PSIyODQiIGN5PSIyNjgiIHI9IjEyIiBmaWxsPSIjRUFCMzA4Ii8+Cjwvc3ZnPg==",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#EAB308",
+  "background_color": "#111827",
+  "orientation": "portrait",
+  "categories": ["transportation", "travel", "business"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU2OCIgdmlld0JveD0iMCAwIDMyMCA1NjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iNTY4IiBmaWxsPSIjMTExODI3Ii8+CjxyZWN0IHg9IjIwIiB5PSI2MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9IiNFQUIzMDgiLz4KPHRleHQgeD0iMTYwIiB5PSI4NSIgZmlsbD0iIzExMTgyNyIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BaXJpZGUgLSBHbyBPbmxpbmU8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSIxMjAiIHdpZHRoPSIyODAiIGhlaWdodD0iMzAwIiByeD0iMTIiIGZpbGw9IiMyNTM3NGUiLz4KPHRleHQgeD0iMTYwIiB5PSIyODAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TWFwIFZpZXc8L3RleHQ+CjxyZWN0IHg9IjIwIiB5PSI0NDAiIHdpZHRoPSIyODAiIGhlaWdodD0iNjAiIHJ4PSI4IiBmaWxsPSIjMjI5OTU1Ii8+Cjx0ZXh0IHg9IjE2MCIgeT0iNDc1IiBmaWxsPSIjZmZmZmZmIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdPIE9OTElORTwvdGV4dD4KPC9zdmc+",
+      "sizes": "320x568",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}

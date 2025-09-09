@@ -15,6 +15,7 @@ import hashlib
 import secrets
 from enum import Enum
 import asyncio
+import requests
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -56,14 +57,21 @@ class DriverStatus(str, Enum):
     ONLINE = "online"
     BUSY = "busy"
 
+class AuthProvider(str, Enum):
+    GOOGLE = "google"
+    FACEBOOK = "facebook"
+    EMAIL = "email"
+
 # Models
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    phone_number: str
+    email: str
     name: str
-    email: Optional[str] = None
+    picture: Optional[str] = None
+    auth_provider: AuthProvider
+    provider_id: Optional[str] = None  # Google/Facebook user ID
     role: UserRole
-    is_verified: bool = False
+    is_verified: bool = True  # Social accounts are pre-verified
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -102,25 +110,21 @@ class Ride(BaseModel):
     passenger_rating: Optional[int] = None
     driver_rating: Optional[int] = None
 
-class PhoneVerification(BaseModel):
-    phone_number: str
-    verification_code: str
-    expires_at: datetime
-    is_used: bool = False
-
 # Request/Response Models
-class PhoneVerificationRequest(BaseModel):
-    phone_number: str
-
-class VerifyPhoneRequest(BaseModel):
-    phone_number: str
-    verification_code: str
-
-class RegisterRequest(BaseModel):
-    phone_number: str
-    name: str
-    email: Optional[str] = None
+class SocialAuthRequest(BaseModel):
+    access_token: str
+    provider: AuthProvider
     role: UserRole
+
+class EmailRegisterRequest(BaseModel):
+    email: str
+    name: str
+    password: str
+    role: UserRole
+
+class EmailLoginRequest(BaseModel):
+    email: str
+    password: str
 
 class DriverRegistrationRequest(BaseModel):
     license_number: str
@@ -142,9 +146,6 @@ class DriverStatusUpdate(BaseModel):
     status: DriverStatus
 
 # Utility Functions
-def generate_verification_code():
-    return str(secrets.randbelow(900000) + 100000)
-
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + JWT_EXPIRATION_DELTA
@@ -166,78 +167,104 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="User not found")
     return User(**user)
 
-async def send_sms_verification(phone_number: str, code: str):
-    # TODO: Implement SMS sending using Twilio or similar service
-    # For now, we'll just log it
-    print(f"SMS Verification Code for {phone_number}: {code}")
-    return True
+async def verify_google_token(token: str):
+    """Verify Google OAuth token and get user info"""
+    try:
+        # Verify token with Google
+        response = requests.get(
+            f"https://www.googleapis.com/oauth2/v1/userinfo?access_token={token}",
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return None
+            
+        user_info = response.json()
+        return {
+            "provider_id": user_info.get("id"),
+            "email": user_info.get("email"),
+            "name": user_info.get("name"),
+            "picture": user_info.get("picture"),
+            "verified_email": user_info.get("verified_email", False)
+        }
+    except Exception as e:
+        print(f"Error verifying Google token: {e}")
+        return None
+
+async def verify_facebook_token(token: str):
+    """Verify Facebook OAuth token and get user info"""
+    try:
+        # Verify token with Facebook
+        response = requests.get(
+            f"https://graph.facebook.com/me?access_token={token}&fields=id,name,email,picture",
+            timeout=10
+        )
+        
+        if response.status_code != 200:
+            return None
+            
+        user_info = response.json()
+        return {
+            "provider_id": user_info.get("id"),
+            "email": user_info.get("email"),
+            "name": user_info.get("name"),
+            "picture": user_info.get("picture", {}).get("data", {}).get("url")
+        }
+    except Exception as e:
+        print(f"Error verifying Facebook token: {e}")
+        return None
 
 # Authentication Routes
-@api_router.post("/auth/send-verification")
-async def send_verification_code(request: PhoneVerificationRequest):
-    verification_code = generate_verification_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+@api_router.post("/auth/social")
+async def social_auth(request: SocialAuthRequest):
+    """Handle social media authentication (Google/Facebook)"""
+    user_info = None
     
-    # Store verification code
-    verification = PhoneVerification(
-        phone_number=request.phone_number,
-        verification_code=verification_code,
-        expires_at=expires_at
-    )
+    if request.provider == AuthProvider.GOOGLE:
+        user_info = await verify_google_token(request.access_token)
+    elif request.provider == AuthProvider.FACEBOOK:
+        user_info = await verify_facebook_token(request.access_token)
     
-    await db.phone_verifications.delete_many({"phone_number": request.phone_number})
-    await db.phone_verifications.insert_one(verification.dict())
+    if not user_info:
+        raise HTTPException(status_code=400, detail="Invalid social media token")
     
-    # Send SMS
-    await send_sms_verification(request.phone_number, verification_code)
-    
-    return {"message": "Verification code sent successfully"}
-
-@api_router.post("/auth/verify-phone")
-async def verify_phone(request: VerifyPhoneRequest):
-    verification = await db.phone_verifications.find_one({
-        "phone_number": request.phone_number,
-        "verification_code": request.verification_code,
-        "is_used": False
-    })
-    
-    if not verification:
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-    
-    if datetime.utcnow() > verification["expires_at"]:
-        raise HTTPException(status_code=400, detail="Verification code expired")
-    
-    # Mark as used
-    await db.phone_verifications.update_one(
-        {"_id": verification["_id"]},
-        {"$set": {"is_used": True}}
-    )
-    
-    return {"message": "Phone verified successfully"}
-
-@api_router.post("/auth/register")
-async def register_user(request: RegisterRequest):
-    # Check if phone is verified
-    verification = await db.phone_verifications.find_one({
-        "phone_number": request.phone_number,
-        "is_used": True
-    })
-    
-    if not verification:
-        raise HTTPException(status_code=400, detail="Phone number not verified")
+    if not user_info.get("email"):
+        raise HTTPException(status_code=400, detail="Email is required from social provider")
     
     # Check if user already exists
-    existing_user = await db.users.find_one({"phone_number": request.phone_number})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="User already exists")
+    existing_user = await db.users.find_one({
+        "$or": [
+            {"email": user_info["email"]},
+            {"provider_id": user_info["provider_id"], "auth_provider": request.provider}
+        ]
+    })
     
-    # Create user
+    if existing_user:
+        # Update existing user
+        await db.users.update_one(
+            {"id": existing_user["id"]},
+            {"$set": {
+                "name": user_info["name"],
+                "picture": user_info.get("picture"),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        user = User(**existing_user)
+        access_token = create_access_token(data={"sub": user.id})
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user.dict()
+        }
+    
+    # Create new user
     user = User(
-        phone_number=request.phone_number,
-        name=request.name,
-        email=request.email,
-        role=request.role,
-        is_verified=True
+        email=user_info["email"],
+        name=user_info["name"],
+        picture=user_info.get("picture"),
+        auth_provider=request.provider,
+        provider_id=user_info["provider_id"],
+        role=request.role
     )
     
     await db.users.insert_one(user.dict())
@@ -251,60 +278,62 @@ async def register_user(request: RegisterRequest):
         "user": user.dict()
     }
 
-@api_router.post("/auth/login")
-async def login(request: PhoneVerificationRequest):
-    user = await db.users.find_one({"phone_number": request.phone_number})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+@api_router.post("/auth/email/register")
+async def email_register(request: EmailRegisterRequest):
+    """Handle email/password registration"""
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": request.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
     
-    # For simplicity, we'll send a verification code for login too
-    verification_code = generate_verification_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    # Hash password (simplified - in production use proper hashing)
+    password_hash = hashlib.sha256(request.password.encode()).hexdigest()
     
-    verification = PhoneVerification(
-        phone_number=request.phone_number,
-        verification_code=verification_code,
-        expires_at=expires_at
+    # Create user
+    user = User(
+        email=request.email,
+        name=request.name,
+        auth_provider=AuthProvider.EMAIL,
+        role=request.role
     )
     
-    await db.phone_verifications.delete_many({"phone_number": request.phone_number})
-    await db.phone_verifications.insert_one(verification.dict())
+    # Store user with password hash
+    user_data = user.dict()
+    user_data["password_hash"] = password_hash
     
-    await send_sms_verification(request.phone_number, verification_code)
-    
-    return {"message": "Verification code sent for login"}
-
-@api_router.post("/auth/login-verify")
-async def login_verify(request: VerifyPhoneRequest):
-    verification = await db.phone_verifications.find_one({
-        "phone_number": request.phone_number,
-        "verification_code": request.verification_code,
-        "is_used": False
-    })
-    
-    if not verification:
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-    
-    if datetime.utcnow() > verification["expires_at"]:
-        raise HTTPException(status_code=400, detail="Verification code expired")
-    
-    user = await db.users.find_one({"phone_number": request.phone_number})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Mark verification as used
-    await db.phone_verifications.update_one(
-        {"_id": verification["_id"]},
-        {"$set": {"is_used": True}}
-    )
+    await db.users.insert_one(user_data)
     
     # Create access token
-    access_token = create_access_token(data={"sub": user["id"]})
+    access_token = create_access_token(data={"sub": user.id})
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": User(**user).dict()
+        "user": user.dict()
+    }
+
+@api_router.post("/auth/email/login")
+async def email_login(request: EmailLoginRequest):
+    """Handle email/password login"""
+    # Find user
+    user_data = await db.users.find_one({"email": request.email, "auth_provider": "email"})
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify password
+    password_hash = hashlib.sha256(request.password.encode()).hexdigest()
+    if user_data.get("password_hash") != password_hash:
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    user = User(**user_data)
+    
+    # Create access token
+    access_token = create_access_token(data={"sub": user.id})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user.dict()
     }
 
 # User Routes
@@ -313,10 +342,10 @@ async def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
 @api_router.put("/user/profile")
-async def update_profile(name: str, email: Optional[str] = None, current_user: User = Depends(get_current_user)):
+async def update_profile(name: str, current_user: User = Depends(get_current_user)):
     await db.users.update_one(
         {"id": current_user.id},
-        {"$set": {"name": name, "email": email, "updated_at": datetime.utcnow()}}
+        {"$set": {"name": name, "updated_at": datetime.utcnow()}}
     )
     return {"message": "Profile updated successfully"}
 

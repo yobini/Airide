@@ -61,70 +61,17 @@ class AirideAPITester:
         success, status, response = self.make_request('GET', 'health')
         self.log_test("Health check", success, f"Status: {status}")
 
-    def get_verification_code_from_logs(self, phone_number):
-        """Extract verification code from backend logs"""
-        try:
-            import subprocess
-            result = subprocess.run(['tail', '-n', '20', '/var/log/supervisor/backend.out.log'], 
-                                  capture_output=True, text=True)
-            logs = result.stdout
-            
-            # Look for SMS verification code for this phone number
-            for line in logs.split('\n'):
-                if f"SMS Verification Code for {phone_number}:" in line:
-                    code = line.split(':')[-1].strip()
-                    return code
-            return None
-        except:
-            return None
-
-    def test_phone_verification_flow(self, phone_number, user_type="passenger"):
-        """Test phone verification process"""
-        print(f"\n🔍 Testing Phone Verification for {user_type}...")
+    def test_social_auth_google(self, role="passenger"):
+        """Test Google social authentication"""
+        print(f"\n🔍 Testing Google Social Auth for {role}...")
         
-        # Send verification code
-        success, status, response = self.make_request(
-            'POST', 
-            'auth/send-verification',
-            {"phone_number": phone_number}
-        )
-        
-        if not self.log_test(f"Send verification code ({user_type})", success, f"Status: {status}"):
-            return False
-        
-        # Wait a moment for logs to be written
-        time.sleep(1)
-        
-        # Get the actual verification code from logs
-        verification_code = self.get_verification_code_from_logs(phone_number)
-        
-        if not verification_code:
-            self.log_test(f"Get verification code ({user_type})", False, "Could not extract code from logs")
-            return False
-        
-        print(f"   📱 Found verification code: {verification_code}")
-        self.verification_codes[phone_number] = verification_code
-        
-        # Verify phone
+        # Test with mock Google token
         success, status, response = self.make_request(
             'POST',
-            'auth/verify-phone',
-            {"phone_number": phone_number, "verification_code": verification_code}
-        )
-        
-        return self.log_test(f"Verify phone ({user_type})", success, f"Status: {status}")
-
-    def test_registration_flow(self, phone_number, name, role):
-        """Test user registration"""
-        print(f"\n🔍 Testing Registration for {role}...")
-        
-        success, status, response = self.make_request(
-            'POST',
-            'auth/register',
+            'auth/social',
             {
-                "phone_number": phone_number,
-                "name": name,
-                "email": f"test_{role}@example.com",
+                "access_token": "mock-google-token",
+                "provider": "google",
                 "role": role
             }
         )
@@ -134,26 +81,134 @@ class AirideAPITester:
                 self.passenger_token = response['access_token']
             else:
                 self.driver_token = response['access_token']
-            self.log_test(f"Register {role}", True, f"Status: {status}, Token received")
+            self.log_test(f"Google social auth ({role})", True, f"Status: {status}, Token received")
             return True
         else:
-            self.log_test(f"Register {role}", False, f"Status: {status}")
+            self.log_test(f"Google social auth ({role})", False, f"Status: {status}")
             return False
 
-    def test_login_flow(self, phone_number, user_type):
-        """Test login process"""
-        print(f"\n🔍 Testing Login for {user_type}...")
+    def test_social_auth_facebook(self, role="passenger"):
+        """Test Facebook social authentication"""
+        print(f"\n🔍 Testing Facebook Social Auth for {role}...")
         
-        # Send login verification
+        # Test with mock Facebook token
         success, status, response = self.make_request(
             'POST',
-            'auth/login',
-            {"phone_number": phone_number},
-            expected_status=404  # User doesn't exist
+            'auth/social',
+            {
+                "access_token": "mock-facebook-token",
+                "provider": "facebook",
+                "role": role
+            }
         )
         
-        self.log_test(f"Login request ({user_type})", False, "Expected failure - user not found")
-        return False
+        if success and 'access_token' in response:
+            if role == 'passenger':
+                self.passenger_token = response['access_token']
+            else:
+                self.driver_token = response['access_token']
+            self.log_test(f"Facebook social auth ({role})", True, f"Status: {status}, Token received")
+            return True
+        else:
+            self.log_test(f"Facebook social auth ({role})", False, f"Status: {status}")
+            return False
+
+    def test_email_registration(self, email, name, password, role):
+        """Test email registration"""
+        print(f"\n🔍 Testing Email Registration for {role}...")
+        
+        success, status, response = self.make_request(
+            'POST',
+            'auth/email/register',
+            {
+                "email": email,
+                "name": name,
+                "password": password,
+                "role": role
+            }
+        )
+        
+        if success and 'access_token' in response:
+            if role == 'passenger':
+                self.passenger_token = response['access_token']
+            else:
+                self.driver_token = response['access_token']
+            self.log_test(f"Email registration ({role})", True, f"Status: {status}, Token received")
+            return True
+        else:
+            self.log_test(f"Email registration ({role})", False, f"Status: {status}")
+            return False
+
+    def test_email_login(self, email, password, role):
+        """Test email login"""
+        print(f"\n🔍 Testing Email Login for {role}...")
+        
+        success, status, response = self.make_request(
+            'POST',
+            'auth/email/login',
+            {
+                "email": email,
+                "password": password
+            }
+        )
+        
+        if success and 'access_token' in response:
+            self.log_test(f"Email login ({role})", True, f"Status: {status}, Token received")
+            return True
+        else:
+            self.log_test(f"Email login ({role})", False, f"Status: {status}")
+            return False
+
+    def test_duplicate_email_registration(self):
+        """Test duplicate email registration should fail"""
+        print(f"\n🔍 Testing Duplicate Email Registration...")
+        
+        success, status, response = self.make_request(
+            'POST',
+            'auth/email/register',
+            {
+                "email": self.test_email_passenger,
+                "name": "Duplicate User",
+                "password": "password123",
+                "role": "passenger"
+            },
+            expected_status=400
+        )
+        
+        self.log_test("Duplicate email registration", success, f"Status: {status} (should be 400)")
+
+    def test_invalid_login_credentials(self):
+        """Test login with invalid credentials"""
+        print(f"\n🔍 Testing Invalid Login Credentials...")
+        
+        success, status, response = self.make_request(
+            'POST',
+            'auth/email/login',
+            {
+                "email": "nonexistent@example.com",
+                "password": "wrongpassword"
+            },
+            expected_status=404
+        )
+        
+        self.log_test("Invalid email login", success, f"Status: {status} (should be 404)")
+
+    def test_invalid_social_token(self):
+        """Test social auth with invalid token"""
+        print(f"\n🔍 Testing Invalid Social Token...")
+        
+        success, status, response = self.make_request(
+            'POST',
+            'auth/social',
+            {
+                "access_token": "invalid-token",
+                "provider": "google",
+                "role": "passenger"
+            },
+            expected_status=400
+        )
+        
+        self.log_test("Invalid social token", success, f"Status: {status} (should be 400)")
 
     def test_protected_endpoints_without_auth(self):
         """Test protected endpoints without authentication"""
